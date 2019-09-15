@@ -25,7 +25,7 @@ chrome.runtime.onInstalled.addListener(function() {
   });
   chrome.contextMenus.create({
     title: 'Check KARMA',
-    id: 'karma.mn',
+    id: 'karma',
     contexts: ['link', 'selection'],
     targetUrlPatterns: ["*://*/*Mx*"]
   });

@@ -74,7 +74,7 @@ chrome.contextMenus.onClicked.addListener(function(data) {
   if (url) {
     chrome.tabs.create({url})
   } else {
-    console.log('Invalid input', data);
+    console.log('Invalid input!', {address, validator, transaction, coin});
   }
 });
 

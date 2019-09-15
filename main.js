@@ -40,35 +40,29 @@ chrome.contextMenus.onClicked.addListener(function(data) {
   var coin = matchCoin(text);
   var url = '';
   if (menuItemId === 'explorer') {
-    if (address) {
-      url = 'https://explorer.minter.network/address/' + address;
-    }
-    if (validator) {
-      url = 'https://explorer.minter.network/validator/' + validator;
-    }
     if (transaction) {
       url = 'https://explorer.minter.network/transactions/' + transaction;
+    } else if (validator) {
+      url = 'https://explorer.minter.network/validator/' + validator;
+    } else if (address) {
+      url = 'https://explorer.minter.network/address/' + address;
     }
   }
   if (menuItemId === 'mscan') {
-    if (address) {
-      url = 'https://minterscan.net/address/' + address;
-    }
-    if (validator) {
-      url = 'https://minterscan.net/validator/' + validator;
-    }
     if (transaction) {
       url = 'https://minterscan.net/tx/' + transaction;
+    } else if (validator) {
+      url = 'https://minterscan.net/validator/' + validator;
+    } else if (address) {
+      url = 'https://minterscan.net/address/' + address;
     }
   }
   if (menuItemId === 'interchain') {
-    if (address) {
-      url = 'https://minter.interchain.zone/en/wallet/' + address;
-    }
     if (validator) {
       url = 'https://minter.interchain.zone/en/nodes/' + validator;
-    }
-    if (coin) {
+    } else if (address) {
+      url = 'https://minter.interchain.zone/en/wallet/' + address;
+    } else if (coin) {
       url = 'https://minter.interchain.zone/en/coin/' + coin;
     }
   }

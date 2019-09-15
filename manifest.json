@@ -1,0 +1,11 @@
+{
+  "name": "Minter Tools",
+  "version": "0.1",
+  "description": "Tools for Minter users",
+  "manifest_version": 2,
+  "background": {
+    "scripts": ["main.js"],
+    "persistent": false
+  },
+  "permissions": ["contextMenus"]
+}

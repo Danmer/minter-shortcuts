@@ -6,28 +6,24 @@ chrome.runtime.onInstalled.addListener(function() {
     contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Open on Explorer',
+    title: 'Explorer',
     id: 'explorer',
-    contexts: ['link', 'selection'],
-    targetUrlPatterns: ["*://*/*Mx*", "*://*/*Mp*", "*://*/*Mt*"]
+    contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Open on Minterscan',
+    title: 'Minterscan',
     id: 'mscan',
-    contexts: ['link', 'selection'],
-    targetUrlPatterns: ["*://*/*Mx*", "*://*/*Mp*", "*://*/*Mt*"]
+    contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Open on Interchain',
+    title: 'Interchain',
     id: 'interchain',
-    contexts: ['link', 'selection'],
-    targetUrlPatterns: ["*://*/*Mx*", "*://*/*Mp*"]
+    contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Check KARMA',
+    title: 'Karma',
     id: 'karma',
-    contexts: ['link', 'selection'],
-    targetUrlPatterns: ["*://*/*Mx*"]
+    contexts: ['all']
   });
 });
 
@@ -39,6 +35,7 @@ chrome.contextMenus.onClicked.addListener(function(data) {
   var transaction = matchTransaction(text);
   var coin = matchCoin(text);
   var url = '';
+  console.log('Input', {data, address, validator, transaction, coin});
   if (menuItemId === 'explorer') {
     if (transaction) {
       url = 'https://explorer.minter.network/transactions/' + transaction;
@@ -46,6 +43,8 @@ chrome.contextMenus.onClicked.addListener(function(data) {
       url = 'https://explorer.minter.network/validator/' + validator;
     } else if (address) {
       url = 'https://explorer.minter.network/address/' + address;
+    } else {
+      url = 'https://explorer.minter.network'
     }
   }
   if (menuItemId === 'mscan') {
@@ -55,6 +54,8 @@ chrome.contextMenus.onClicked.addListener(function(data) {
       url = 'https://minterscan.net/validator/' + validator;
     } else if (address) {
       url = 'https://minterscan.net/address/' + address;
+    } else {
+      url = 'https://minterscan.net'
     }
   }
   if (menuItemId === 'interchain') {
@@ -64,11 +65,15 @@ chrome.contextMenus.onClicked.addListener(function(data) {
       url = 'https://minter.interchain.zone/en/wallet/' + address;
     } else if (coin) {
       url = 'https://minter.interchain.zone/en/coin/' + coin;
+    } else {
+      url = 'https://minter.interchain.zone'
     }
   }
   if (menuItemId === 'karma') {
     if (address) {
       url = 'https://karma.mn/#' + address;
+    } else {
+      url = 'https://karma.mn'
     }
   }
   if (url) {

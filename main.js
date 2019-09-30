@@ -1,6 +1,6 @@
 chrome.runtime.onInstalled.addListener(function() {
   chrome.contextMenus.create({
-    title: "Minter tools",
+    title: "Minter shortcuts",
     type: "separator",
     id: 'sep1',
     contexts: ['all']

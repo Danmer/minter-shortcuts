@@ -1,7 +1,7 @@
 {
-  "name": "Minter Tools",
+  "name": "Minter Shortcuts",
   "version": "0.2.0",
-  "description": "Tools for Minter users",
+  "description": "Add context menu to explore selected addresses, validators and transactions on popular Minter projects.",
   "manifest_version": 2,
   "background": {
     "scripts": ["main.js"],

@@ -2,6 +2,7 @@
   "name": "Minter Shortcuts",
   "version": "0.2.0",
   "description": "Add an item to the Right Click menu to explore selected addresses, validators and transactions on popular Minter projects.",
+  "author": "Kotlyarov brothers",
   "manifest_version": 2,
   "background": {
     "scripts": ["main.js"],

@@ -6,22 +6,22 @@ chrome.runtime.onInstalled.addListener(function() {
     contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Explorer',
+    title: 'Search on Minter Explorer',
     id: 'explorer',
     contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Minterscan',
+    title: 'Search on Minterscan',
     id: 'mscan',
     contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Interchain',
+    title: 'Search on Interchain.Zone',
     id: 'interchain',
     contexts: ['all']
   });
   chrome.contextMenus.create({
-    title: 'Karma',
+    title: 'Check address reputation',
     id: 'karma',
     contexts: ['all']
   });

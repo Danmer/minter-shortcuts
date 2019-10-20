@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 31em; line-height: 1; font-size: 1em; }
+      input { padding: .3em; width: 100%; background-color: #fff; font-size: 1em; }
+      .status { padding: 3rem .5rem .5rem; color: #999; font-size: .8em; }
+      .form { position: fixed; z-index: 1; width: 100%; padding: .5rem; }
+      .item { height: 0; overflow: hidden; transition: background-color .2s; }
+      .item:hover { background-color: #fed; transition: none; }
+      .item:hover .links, .item:hover .copy { opacity: 1; }
+      .item.matched { height: auto; padding: .5rem; border-top: 1px solid #ccc; }
+      .type { margin-right: .1em; height: 1.2em; opacity: .3; }
+      .avatar { flex-shrink: 0; width: 2em; height: 2em; margin-right: .3em; /* background-color: #ddd; */ background-position: center; background-size: contain; background-repeat: no-repeat; }
+      .info { display: flex; position: relative; }
+      .header { flex: 1; position: relative; line-height: 1.1; }
+      .title { display: block; padding-right: 8em; }
+      .hash { display: flex; align-items: center; color: #999; font-family: monospace; font-size: .9em; }
+      .links { position: absolute; right: 0; top: 0; opacity: 0; font-size: 1.3em; }
+      .link-img { height: 1em; }
+      .copy { opacity: 0; color: #03c; cursor: pointer; }
+      .copy:hover { color: #06f; }
+      .description { margin-top: .3em; }
+      .nothing { padding: .5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="form">
+      <input class="input" type="text" placeholder="Search" tabindex="1" autofocus />
+    </div>
+    <div class="status">
+      Loading...
+    </div>
+    <div class="results">
+
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>

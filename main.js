@@ -35,7 +35,7 @@ chrome.contextMenus.onClicked.addListener(function(data) {
   var transaction = matchTransaction(text);
   var coin = matchCoin(text);
   var url = '';
-  console.log('Input', {data, address, validator, transaction, coin});
+  // console.log('Input', {data, address, validator, transaction, coin});
   if (menuItemId === 'explorer') {
     if (transaction) {
       url = 'https://explorer.minter.network/transactions/' + transaction;
@@ -79,7 +79,7 @@ chrome.contextMenus.onClicked.addListener(function(data) {
   if (url) {
     chrome.tabs.create({url})
   } else {
-    console.log('Invalid input!', {address, validator, transaction, coin});
+    // console.log('Invalid input!', {address, validator, transaction, coin});
   }
 });
 

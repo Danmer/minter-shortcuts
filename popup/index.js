@@ -79,6 +79,7 @@ function update() {
         <div class="info">
           <div class="avatar" style="background-image: url('${result.icon}')"></div>
           <div class="header">
+            <img class="type" src="../img/${result.isProfile ? 'profile' : 'server'}_32.png">
             <span class="links">
               ${userLink}
               ${serviceLinks}

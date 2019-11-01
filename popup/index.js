@@ -62,6 +62,7 @@ function update() {
     const title = result.title || 'Unnamed'
     const descriptionHTML = result.description ? `<div class="description"><small>${result.description}</small></div>` : ''
     const userLink = getLinkHTML(result.www)
+    const verified = result.isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''
     let serviceLinks = ''
     if (matchAddress(result.hash)) {
       serviceLinks = `
@@ -81,7 +82,7 @@ function update() {
     return `
       <div class="item matched">
         <div class="info">
-          <div class="avatar" style="background-image: url('${result.icon}')"></div>
+          <div class="avatar" style="background-image: url('${result.icon}')">${verified}</div>
           <div class="header">
             <img class="type" src="../img/${result.isProfile ? 'profile' : 'server'}_32.png">
             <span class="links">

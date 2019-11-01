@@ -23,6 +23,9 @@ async function init() {
     getValidators().then(data => {
       validators = data
       update()
+    }),
+    getInput().then(data => {
+      $input.value = data
     })
   ]).then(search)
 }
@@ -35,6 +38,7 @@ async function updateStatus(text) {
 
 function search() {
   input = $input.value.toLowerCase().replace(/^[@#]/, '')
+  chrome.storage.local.set({minterSearch: input})
   const words = input.split(/\s+/)
   items.forEach(item => {
     item.matched = true
@@ -107,9 +111,13 @@ function update() {
   updateStatus()
 }
 
+async function getInput() {
+  return new Promise(resolve => {
     chrome.storage.local.get(['minterSearch'], async data => {
       resolve(data.minterSearch || '')
     })
+  })
+}
 
 async function getProfiles() {
   return new Promise(resolve => {

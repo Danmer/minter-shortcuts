@@ -213,10 +213,10 @@ function hasWord(item, word) {
   if (!item) {
     return false
   }
-  const address = item.hash.toLowerCase().includes(word)
-  const description = item.description.toLowerCase().includes(word)
-  const title = item.title.toLowerCase().includes(word)
-  const www = item.www.toLowerCase().includes(word)
+  const address = item.hash && item.hash.toLowerCase().includes(word)
+  const description = item.description && item.description.toLowerCase().includes(word)
+  const title = item.title && item.title.toLowerCase().includes(word)
+  const www = item.www && item.www.toLowerCase().includes(word)
   return address || description || title || www
 }
 

@@ -1,44 +1,56 @@
 let $input = document.querySelector('.input')
 let $status = document.querySelector('.status')
-let $results = document.querySelector('.results')
-let items = []
+let $validators = document.querySelector('.validators')
+let $profiles = document.querySelector('.profiles')
+let $update = document.querySelector('.update')
+let $errors = document.querySelector('.errors')
 let profiles = []
 let validators = []
-let filteredProfiles = []
-let filteredValidators = []
+let fetchingProfiles = false
+let fetchingValidators = false
 let input = ''
-let $items = []
 
 init()
 
 async function init() {
   $input.addEventListener('focus', $input.select)
   $input.addEventListener('input', search)
-  updateStatus('Loading...')
+  $update.addEventListener('click', fetchItems)
+
+  input = await getInput()
+  $input.value = input
+  $input.readOnly = false
+  $input.placeholder = 'Search'
+  $input.select()
+
+  updateItems()
+}
+
+function fetchItems() {
+  chrome.storage.local.set({minterProfilesUpdated: 0, minterValidatorsUpdated: 0}, () => {
+    updateItems()
+  })
+}
+
+function updateItems() {
+  $errors.innerHTML = ''
+  profiles = []
+  validators = []
   Promise.all([
-    getProfiles().then(data => {
-      profiles = data
-      update()
-    }),
     getValidators().then(data => {
       validators = data
-      update()
+      matchItems(validators)
+      drawValidators()
     }),
-    getInput().then(data => {
-      $input.value = data
-    })
-  ]).then(search)
+    getProfiles().then(data => {
+      profiles = data
+      matchItems(profiles)
+      drawProfiles()
+    }),
+  ])
 }
 
-async function updateStatus(text) {
-  const profilesCount = input ? `${filteredProfiles.length}/${profiles.length}` : (profiles.length || 'loading')
-  const validatorsCount = input ? `${filteredValidators.length}/${validators.length}` : (validators.length || 'loading')
-  $status.innerText = `${profilesCount} profiles, ${validatorsCount} validators`
-}
-
-function search() {
-  input = $input.value.toLowerCase().replace(/^[@#]/, '')
-  chrome.storage.local.set({minterSearch: input})
+function matchItems(items) {
   const words = input.split(/\s+/)
   items.forEach(item => {
     item.matched = true
@@ -46,75 +58,99 @@ function search() {
       item.matched = item.matched && hasWordVariations(item, word)
     })
   })
-  filteredProfiles = profiles.filter(profile => profile.matched && profile.hash[1] === 'x')
-  filteredValidators = validators.filter(validator => validator.matched && validator.hash[1] === 'p')
-  for (const i in items) {
-    $items[i].className = `item ${items[i].matched ? 'matched' : 0}`
-  }
-  updateStatus()
+  drawStatus()
+}
+
+function search() {
+  input = $input.value.toLowerCase().replace(/^[@#]/, '')
+  chrome.storage.local.set({minterSearch: input})
+  matchItems(validators)
+  matchItems(profiles)
+  const items = validators.concat(profiles)
+  document.querySelectorAll('.item').forEach(($item, index) => {
+    $item.classList[items[index].matched ? 'add' : 'remove']('matched')
+  })
   window.scroll(0, 0)
 }
 
-function update() {
-  items = validators.concat(profiles)
-  $results.innerHTML = items.map(result => {
-    // const icon = result.icon.replace(/\/imgur\.com\/(.+)/i, "/i.imgur.com/$1.jpg")
-    const title = result.title || 'Unnamed'
-    const descriptionHTML = result.description ? `<div class="description"><small>${result.description}</small></div>` : ''
-    const userLink = getLinkHTML(result.www)
-    const verified = result.isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''
-    let serviceLinks = ''
-    if (matchAddress(result.hash)) {
-      serviceLinks = `
-        <a href="https://explorer.minter.network/address/${result.hash}" target="_blank" title="https://explorer.minter.network/address/${result.hash}"><img class="link-img" src="/img/explorer_32.png" alt="explorer" /></a>
-        <a href="https://minterscan.net/address/${result.hash}" target="_blank" title="https://minterscan.net/address/${result.hash}"><img class="link-img" src="/img/minterscan_32.png" alt="minterscan" /></a>
-        <a href="https://minter.interchain.zone/en/wallet/${result.hash}" target="_blank" title="https://minter.interchain.zone/en/wallet/${result.hash}"><img class="link-img" src="/img/interchain_32.png" alt="interchain" /></a>
-        <a href="https://karma.mn/#${result.hash}" target="_blank" title="https://karma.mn/#${result.hash}"><img class="link-img" src="/img/angel_32.png" alt="karma" /></a>
-      `
-    }
-    if (matchValidator(result.hash)) {
-      serviceLinks = `
-        <a href="https://explorer.minter.network/validator/${result.hash}" target="_blank" title="https://explorer.minter.network/validator/${result.hash}"><img class="link-img" src="/img/explorer_32.png" alt="explorer" /></a>
-        <a href="https://minterscan.net/validator/${result.hash}" target="_blank" title="https://minterscan.net/validator/${result.hash}"><img class="link-img" src="/img/minterscan_32.png" alt="minterscan" /></a>
-        <a href="https://minter.interchain.zone/en/nodes/${result.hash}" target="_blank" title="https://minter.interchain.zone/en/nodes/${result.hash}"><img class="link-img" src="/img/interchain_32.png" alt="interchain" /></a>
-      `
-    }
+function drawStatus() {
+  const filteredProfiles = profiles.filter(profile => profile.matched)
+  const filteredValidators = validators.filter(validator => validator.matched)
+  const profilesCount = fetchingProfiles ? 'loading' : (input ? `${filteredProfiles.length}/${profiles.length}` : profiles.length)
+  const validatorsCount = fetchingValidators ? 'loading' : (input ? `${filteredValidators.length}/${validators.length}` : validators.length)
+  $status.innerText = `${profilesCount} profiles, ${validatorsCount} validators`
+}
+
+function drawValidators() {
+  $validators.querySelectorAll('.item').forEach($item => {
+    $item.querySelector('.copy').removeEventListener('click', copy)
+  })
+  $validators.innerHTML = validators.map(item => {
     return `
-      <div class="item matched">
+      <div class="item ${item.matched ? 'matched' : 0}">
         <div class="info">
-          <div class="avatar" style="background-image: url('${result.icon}')">${verified}</div>
+          <div class="avatar" style="background-image: url('${item.icon}')"></div>
           <div class="header">
-            <img class="type" src="../img/${result.isProfile ? 'profile' : 'server'}_32.png">
+            <img class="type" src="../img/server_32.png">
             <span class="links">
-              ${userLink}
-              ${serviceLinks}
+              ${getLinkHTML(item.www)}
+              <a class="link explorer" href="https://explorer.minter.network/validator/${item.hash}" target="_blank" title="https://explorer.minter.network/validator/${item.hash}"></a>
+              <a class="link minterscan" href="https://minterscan.net/validator/${item.hash}" target="_blank" title="https://minterscan.net/validator/${item.hash}"></a>
+              <a class="link interchain" href="https://minter.interchain.zone/en/nodes/${item.hash}" target="_blank" title="https://minter.interchain.zone/en/nodes/${item.hash}"></a>
             </span>
-            <b class="title">${title}&nbsp;</b>
+            <div class="title">${item.title || 'Unnamed'}</div>
             <code class="hash">
-              ${getShortHash(result.hash)}&nbsp;<span class="copy" data-hash="${result.hash}">copy</span>
+              ${getShortHash(item.hash)}&nbsp;
+              <span class="copy" data-hash="${item.hash}">copy</span>
             </code>
           </div>
         </div>
-        ${descriptionHTML}
+        ${item.description ? `<small class="description">${item.description}</small>` : ''}
       </div>
     `
   }).join('')
-  $items = document.querySelectorAll('.item')
-  $items.forEach($item => {
-    $item.querySelector('.copy').addEventListener('click', event => {
-      copyTextToClipboard(event.target.dataset.hash)
-      event.target.innerText = 'copied!'
-      setTimeout(() => {
-        event.target.innerText = 'copy'
-      }, 1000)
-    })
+  $validators.querySelectorAll('.item').forEach($item => {
+    $item.querySelector('.copy').addEventListener('click', copy)
   })
-  updateStatus()
+}
+
+function drawProfiles() {
+  $profiles.querySelectorAll('.item').forEach($item => {
+    $item.querySelector('.copy').removeEventListener('click', copy)
+  })
+  $profiles.innerHTML = profiles.map(item => {
+    return `
+      <div class="item ${item.matched ? 'matched' : 0}">
+        <div class="info">
+          <div class="avatar" style="background-image: url('${item.icon}')">${item.isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''}</div>
+          <div class="header">
+            <img class="type" src="../img/profile_32.png">
+            <span class="links">
+              ${getLinkHTML(item.www)}
+              <a class="link explorer" href="https://explorer.minter.network/address/${item.hash}" target="_blank" title="https://explorer.minter.network/address/${item.hash}"></a>
+              <a class="link minterscan" href="https://minterscan.net/address/${item.hash}" target="_blank" title="https://minterscan.net/address/${item.hash}"></a>
+              <a class="link interchain" href="https://minter.interchain.zone/en/wallet/${item.hash}" target="_blank" title="https://minter.interchain.zone/en/wallet/${item.hash}"></a>
+              <a class="link karma" href="https://karma.mn/#${item.hash}" target="_blank" title="https://karma.mn/#${item.hash}"></a>
+            </span>
+            <div class="title">${item.title || 'Unnamed'}</div>
+            <code class="hash">
+              ${getShortHash(item.hash)}&nbsp;
+              <span class="copy" data-hash="${item.hash}">copy</span>
+            </code>
+          </div>
+        </div>
+        ${item.description ? `<small class="description">${item.description}</small>` : ''}
+      </div>
+    `
+  }).join('')
+  $profiles.querySelectorAll('.item').forEach($item => {
+    $item.querySelector('.copy').addEventListener('click', copy)
+  })
 }
 
 async function getInput() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['minterSearch'], async data => {
+    chrome.storage.local.get(['minterSearch'], data => {
       resolve(data.minterSearch || '')
     })
   })
@@ -126,7 +162,7 @@ async function getProfiles() {
       const updated = data.minterProfilesUpdated || 0
       const cached = data.minterProfiles || []
       const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-      const profiles = isUptodate ? cached : await fetchProfiles()
+      const profiles = isUptodate && cached.length ? cached : await fetchProfiles()
       resolve(profiles)
     })
   })
@@ -138,7 +174,7 @@ async function getValidators() {
       const updated = data.minterValidatorsUpdated || 0
       const cached = data.minterValidators || []
       const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-      const validators = isUptodate ? cached : await fetchValidators()
+      const validators = isUptodate && cached.length ? cached : await fetchValidators()
       resolve(validators)
     })
   })
@@ -146,6 +182,8 @@ async function getValidators() {
 
 async function fetchProfiles() {
   try {
+    fetchingProfiles = true
+    drawStatus()
     const profiles = await fetch(`https://minterscan.pro/profiles`).then(res => res.json()).then(items => {
       return items.map(item => {
         return {
@@ -164,12 +202,18 @@ async function fetchProfiles() {
     return profiles
   } catch (error) {
     console.warn(error)
+    $errors.innerHTML += `<div class="error">${error}</div>`
     return []
+  } finally {
+    fetchingProfiles = false
+    drawStatus()
   }
 }
 
 async function fetchValidators() {
   try {
+    fetchingValidators = true
+    drawStatus()
     const validators = await fetch(`https://minterscan.pro/validators`).then(res => res.json()).then(items => {
       return items.filter(item => {
         return item.status === 2
@@ -193,7 +237,11 @@ async function fetchValidators() {
     return validators
   } catch (error) {
     console.warn(error)
+    $errors.innerHTML += `<div class="error">${error}</div>`
     return []
+  } finally {
+    fetchingValidators = false
+    drawStatus()
   }
 }
 
@@ -229,15 +277,15 @@ function getLinkHTML(url) {
   const facebook = matchFacebook(url)
   const twitter = matchTwitter(url)
   if (telegram) {
-    return `<a href="https://t.me/${telegram}" target="_blank" title="https://t.me/${telegram}"><img class="link-img" src="../img/telegram_32.png"></a>`
+    return `<a class="link telegram" href="https://t.me/${telegram}" target="_blank" title="https://t.me/${telegram}"></a>`
   } else if (vkontakte) {
-    return `<a href="https://vk.com/${vkontakte}" target="_blank" title="https://vk.com/${vkontakte}"><img class="link-img" src="../img/vkontakte_32.png"></a>`
+    return `<a class="link vkontakte" href="https://vk.com/${vkontakte}" target="_blank" title="https://vk.com/${vkontakte}"></a>`
   } else if (facebook) {
-    return `<a href="https://facebook.com/${facebook}" target="_blank" title="https://facebook.com/${facebook}"><img class="link-img" src="../img/facebook_32.png"></a>`
+    return `<a class="link facebook" href="https://facebook.com/${facebook}" target="_blank" title="https://facebook.com/${facebook}"></a>`
   } else if (twitter) {
-    return `<a href="https://twitter.com/${twitter}" target="_blank" title="https://twitter.com/${twitter}"><img class="link-img" src="../img/twitter_32.png"></a>`
+    return `<a class="link twitter" href="https://twitter.com/${twitter}" target="_blank" title="https://twitter.com/${twitter}"></a>`
   }
-  return `<a href="${url}" target="_blank" title="${url}"><img class="link-img" src="../img/www_32.png"></a>`
+  return `<a class="link www" href="${url}" target="_blank" title="${url}"></a>`
 }
 
 function getShortHash(hash) {
@@ -417,12 +465,16 @@ function convertEnLayout(text) {
     .replace(/\./ig, '\u044E') // ю
 }
 
-function copyTextToClipboard(text) {
+function copy(event) {
   const $copyFrom = document.createElement('textarea')
-  $copyFrom.textContent = text
+  $copyFrom.textContent = event.target.dataset.hash
   document.body.appendChild($copyFrom)
   $copyFrom.select()
   document.execCommand('copy')
   $copyFrom.blur()
   document.body.removeChild($copyFrom)
+  event.target.innerText = 'copied!'
+  setTimeout(() => {
+    event.target.innerText = 'copy'
+  }, 1000)
 }

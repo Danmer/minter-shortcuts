@@ -5,8 +5,12 @@
       * { box-sizing: border-box; }
       body { margin: 0; min-width: 31em; line-height: 1; font-size: 1em; }
       input { padding: .3em; width: 100%; background-color: #fff; font-size: 1em; }
-      .status { padding: 3rem .5rem .5rem; color: #999; font-size: .8em; }
+      input[disabled] { border: 1px solid #ccc; opacity: .5; }
       .form { position: fixed; z-index: 1; width: 100%; padding: .5rem; }
+      .panel { display: flex; align-items: center; padding-top: 2.5rem }
+      .status { flex: 1; padding: .5rem; color: #999; font-size: .8em; }
+      .update { padding: .5rem; color: #999; font-size: .8em; cursor: pointer; }
+      .update:hover { color: #06f; }
       .item { height: 0; overflow: hidden; transition: background-color .2s; }
       .item:hover { background-color: #fed; transition: none; }
       .item:hover .type { opacity: 0; }
@@ -17,26 +21,39 @@
       .verified { position: absolute; bottom: -.1em; right: -.1em; height: .8em; }
       .info { display: flex; position: relative; }
       .header { flex: 1; position: relative; line-height: 1.1; }
-      .title { display: block; padding-right: 8em; }
+      .title { display: block; padding-right: 8em; font-weight: bold; }
       .hash { display: flex; align-items: center; color: #999; font-family: monospace; font-size: .9em; }
       .links { position: absolute; right: 0; top: 0; opacity: 0; font-size: 1.3em; }
-      .link-img { height: 1em; }
+      .link { display: inline-block; width: 1em; height: 1em; background-repeat: no-repeat; background-size: cover; background-position: center; }
+      .link.www { background-image: url("../img/www_32.png"); }
+      .link.telegram { background-image: url("../img/telegram_32.png"); }
+      .link.vkontakte { background-image: url("../img/vkontakte_32.png"); }
+      .link.facebook { background-image: url("../img/facebook_32.png"); }
+      .link.tweeter { background-image: url("../img/tweeter_32.png"); }
+      .link.explorer { background-image: url("../img/explorer_32.png"); }
+      .link.minterscan { background-image: url("../img/minterscan_32.png"); }
+      .link.interchain { background-image: url("../img/interchain_32.png"); }
+      .link.karma { background-image: url("../img/angel_32.png"); }
       .copy { opacity: 0; color: #03c; cursor: pointer; }
       .copy:hover { color: #06f; }
-      .description { margin-top: .3em; }
+      .description { margin-top: .3em; font-size: .8em; }
       .nothing { padding: .5rem; }
+      .error { margin: .5rem; color: #c00; }
     </style>
   </head>
   <body>
     <div class="form">
-      <input class="input" type="text" placeholder="Search" tabindex="1" autofocus />
+      <input class="input" type="search" tabindex="1" placeholder="Loading" readonly />
     </div>
-    <div class="status">
-      Loading...
+    <div class="panel">
+      <div class="status">
+        Loading...
+      </div>
+      <span class="update">Update</span>
     </div>
-    <div class="results">
-
-    </div>
-    <script src="index.js"></script>
+    <div class="errors"></div>
+    <div class="validators"></div>
+    <div class="profiles"></div>
+    <script async src="index.js"></script>
   </body>
 </html>

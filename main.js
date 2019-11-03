@@ -1,33 +1,35 @@
-chrome.runtime.onInstalled.addListener(function() {
-  chrome.contextMenus.create({
+const app = typeof chrome === 'undefined' ? browser : chrome
+
+app.runtime.onInstalled.addListener(function() {
+  app.contextMenus.create({
     title: "Minter shortcuts",
     type: "separator",
     id: 'sep1',
     contexts: ['all']
   });
-  chrome.contextMenus.create({
+  app.contextMenus.create({
     title: 'Search on Minter Explorer',
     id: 'explorer',
     contexts: ['all']
   });
-  chrome.contextMenus.create({
+  app.contextMenus.create({
     title: 'Search on Minterscan',
     id: 'mscan',
     contexts: ['all']
   });
-  chrome.contextMenus.create({
+  app.contextMenus.create({
     title: 'Search on Interchain.Zone',
     id: 'interchain',
     contexts: ['all']
   });
-  chrome.contextMenus.create({
+  app.contextMenus.create({
     title: 'Check address reputation',
     id: 'karma',
     contexts: ['all']
   });
 });
 
-chrome.contextMenus.onClicked.addListener(function(data) {
+app.contextMenus.onClicked.addListener(function(data) {
   var menuItemId = data.menuItemId;
   var text = data.linkUrl || data.selectionText
   var address = matchAddress(text);
@@ -77,7 +79,7 @@ chrome.contextMenus.onClicked.addListener(function(data) {
     }
   }
   if (url) {
-    chrome.tabs.create({url})
+    app.tabs.create({url})
   } else {
     // console.log('Invalid input!', {address, validator, transaction, coin});
   }

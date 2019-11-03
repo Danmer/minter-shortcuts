@@ -1,3 +1,5 @@
+const app = typeof chrome === 'undefined' ? browser : chrome
+
 let $input = document.querySelector('.input')
 let $status = document.querySelector('.status')
 let $errors = document.querySelector('.errors')
@@ -29,7 +31,7 @@ async function init() {
 }
 
 function fetchItems() {
-  chrome.storage.local.set({minterProfilesUpdated: 0, minterValidatorsUpdated: 0}, () => {
+  app.storage.local.set({minterProfilesUpdated: 0, minterValidatorsUpdated: 0}, () => {
     updateItems()
   })
 }
@@ -65,7 +67,7 @@ function matchItems(items) {
 
 function search() {
   input = $input.value.toLowerCase().replace(/^[@#]/, '')
-  chrome.storage.local.set({minterSearch: input})
+  app.storage.local.set({minterSearch: input})
   matchItems(validators)
   matchItems(profiles)
   const items = validators.concat(profiles)
@@ -119,7 +121,7 @@ function copy(event) {
 
 async function getInput() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['minterSearch'], data => {
+    app.storage.local.get(['minterSearch'], data => {
       resolve(data.minterSearch || '')
     })
   })
@@ -127,7 +129,7 @@ async function getInput() {
 
 async function getProfiles() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['minterProfiles', 'minterProfilesUpdated'], async data => {
+    app.storage.local.get(['minterProfiles', 'minterProfilesUpdated'], async data => {
       const updated = data.minterProfilesUpdated || 0
       const cached = data.minterProfiles || []
       const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
@@ -139,7 +141,7 @@ async function getProfiles() {
 
 async function getValidators() {
   return new Promise(resolve => {
-    chrome.storage.local.get(['minterValidators', 'minterValidatorsUpdated'], async data => {
+    app.storage.local.get(['minterValidators', 'minterValidatorsUpdated'], async data => {
       const updated = data.minterValidatorsUpdated || 0
       const cached = data.minterValidators || []
       const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
@@ -167,7 +169,7 @@ async function fetchProfiles() {
         }
       })
     })
-    chrome.storage.local.set({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
+    app.storage.local.set({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
     return profiles
   } catch (error) {
     console.warn(error)
@@ -202,7 +204,7 @@ async function fetchValidators() {
         }
       })
     })
-    chrome.storage.local.set({minterValidators: validators, minterValidatorsUpdated: Date.now()})
+    app.storage.local.set({minterValidators: validators, minterValidatorsUpdated: Date.now()})
     return validators
   } catch (error) {
     console.warn(error)

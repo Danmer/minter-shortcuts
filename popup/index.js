@@ -242,7 +242,7 @@ function hasWord(item, word) {
 function getItemHTML(item) {
   const {hash, icon, title, description, matched, www, isVerified, isProfile, isValidator} = item
   const avatar = icon ? `url('${icon}')` : 'none'
-  const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''
+  const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
   const descriptionHTML = description ? `<small class="description">${description}</small>` : ''
   return `

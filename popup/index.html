@@ -16,8 +16,10 @@
       .item:hover .type { opacity: 0; }
       .item:hover .links, .item:hover .copy { opacity: 1; }
       .item.matched { height: auto; padding: .5rem; border-top: 1px solid #ccc; }
-      .type { position: absolute; right: 0; top: 0; opacity: .1; height: 1em; font-size: 1.3em; }
-      .avatar { position: relative; flex-shrink: 0; width: 2em; height: 2em; margin-right: .3em; /* background-color: #ddd; */ background-position: center; background-size: contain; background-repeat: no-repeat; }
+      .type { position: absolute; right: 0; top: 0; opacity: .1; width: 1.3rem; height: 1.3rem; background-position: center; background-size: cover; background-repeat: no-repeat; }
+      .validator .type { background-image: url("../img/validator_32.png"); }
+      .profile .type { background-image: url("../img/profile_32.png"); }
+      .avatar { position: relative; flex-shrink: 0; width: 2em; height: 2em; margin-right: .4em; /* background-color: #ddd; */ background-position: center; background-size: contain; background-repeat: no-repeat; }
       .verified { position: absolute; bottom: -.1em; right: -.1em; height: .8em; }
       .info { display: flex; position: relative; }
       .header { flex: 1; position: relative; line-height: 1.1; }
@@ -25,7 +27,7 @@
       .hash { display: flex; align-items: center; color: #999; font-family: monospace; font-size: .9em; }
       .links { position: absolute; right: 0; top: 0; opacity: 0; font-size: 1.3em; }
       .link { display: inline-block; width: 1em; height: 1em; background-repeat: no-repeat; background-size: cover; background-position: center; }
-      .link.www { background-image: url("../img/www_32.png"); }
+      .link.web { background-image: url("../img/www_32.png"); }
       .link.telegram { background-image: url("../img/telegram_32.png"); }
       .link.vkontakte { background-image: url("../img/vkontakte_32.png"); }
       .link.facebook { background-image: url("../img/facebook_32.png"); }
@@ -54,6 +56,6 @@
     <div class="errors"></div>
     <div class="validators"></div>
     <div class="profiles"></div>
-    <script async src="index.js"></script>
+    <script src="index.js"></script>
   </body>
 </html>

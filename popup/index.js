@@ -1,9 +1,10 @@
 let $input = document.querySelector('.input')
 let $status = document.querySelector('.status')
+let $errors = document.querySelector('.errors')
 let $validators = document.querySelector('.validators')
 let $profiles = document.querySelector('.profiles')
 let $update = document.querySelector('.update')
-let $errors = document.querySelector('.errors')
+
 let profiles = []
 let validators = []
 let fetchingProfiles = false
@@ -11,6 +12,7 @@ let fetchingValidators = false
 let input = ''
 
 init()
+
 
 async function init() {
   $input.addEventListener('focus', $input.select)
@@ -74,10 +76,10 @@ function search() {
 }
 
 function drawStatus() {
-  const filteredProfiles = profiles.filter(profile => profile.matched)
-  const filteredValidators = validators.filter(validator => validator.matched)
-  const profilesCount = fetchingProfiles ? 'loading' : (input ? `${filteredProfiles.length}/${profiles.length}` : profiles.length)
-  const validatorsCount = fetchingValidators ? 'loading' : (input ? `${filteredValidators.length}/${validators.length}` : validators.length)
+  const matchedProfiles = profiles.filter(profile => profile.matched)
+  const matchedValidators = validators.filter(validator => validator.matched)
+  const profilesCount = fetchingProfiles ? 'loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
+  const validatorsCount = fetchingValidators ? 'loading' : (input ? `${matchedValidators.length}/${validators.length}` : validators.length)
   $status.innerText = `${profilesCount} profiles, ${validatorsCount} validators`
 }
 
@@ -85,30 +87,7 @@ function drawValidators() {
   $validators.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').removeEventListener('click', copy)
   })
-  $validators.innerHTML = validators.map(item => {
-    return `
-      <div class="item ${item.matched ? 'matched' : 0}">
-        <div class="info">
-          <div class="avatar" style="background-image: url('${item.icon}')"></div>
-          <div class="header">
-            <img class="type" src="../img/server_32.png">
-            <span class="links">
-              ${getLinkHTML(item.www)}
-              <a class="link explorer" href="https://explorer.minter.network/validator/${item.hash}" target="_blank" title="https://explorer.minter.network/validator/${item.hash}"></a>
-              <a class="link minterscan" href="https://minterscan.net/validator/${item.hash}" target="_blank" title="https://minterscan.net/validator/${item.hash}"></a>
-              <a class="link interchain" href="https://minter.interchain.zone/en/nodes/${item.hash}" target="_blank" title="https://minter.interchain.zone/en/nodes/${item.hash}"></a>
-            </span>
-            <div class="title">${item.title || 'Unnamed'}</div>
-            <code class="hash">
-              ${getShortHash(item.hash)}&nbsp;
-              <span class="copy" data-hash="${item.hash}">copy</span>
-            </code>
-          </div>
-        </div>
-        ${item.description ? `<small class="description">${item.description}</small>` : ''}
-      </div>
-    `
-  }).join('')
+  $validators.innerHTML = validators.map(getItemHTML).join('')
   $validators.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').addEventListener('click', copy)
   })
@@ -118,34 +97,24 @@ function drawProfiles() {
   $profiles.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').removeEventListener('click', copy)
   })
-  $profiles.innerHTML = profiles.map(item => {
-    return `
-      <div class="item ${item.matched ? 'matched' : 0}">
-        <div class="info">
-          <div class="avatar" style="background-image: url('${item.icon}')">${item.isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''}</div>
-          <div class="header">
-            <img class="type" src="../img/profile_32.png">
-            <span class="links">
-              ${getLinkHTML(item.www)}
-              <a class="link explorer" href="https://explorer.minter.network/address/${item.hash}" target="_blank" title="https://explorer.minter.network/address/${item.hash}"></a>
-              <a class="link minterscan" href="https://minterscan.net/address/${item.hash}" target="_blank" title="https://minterscan.net/address/${item.hash}"></a>
-              <a class="link interchain" href="https://minter.interchain.zone/en/wallet/${item.hash}" target="_blank" title="https://minter.interchain.zone/en/wallet/${item.hash}"></a>
-              <a class="link karma" href="https://karma.mn/#${item.hash}" target="_blank" title="https://karma.mn/#${item.hash}"></a>
-            </span>
-            <div class="title">${item.title || 'Unnamed'}</div>
-            <code class="hash">
-              ${getShortHash(item.hash)}&nbsp;
-              <span class="copy" data-hash="${item.hash}">copy</span>
-            </code>
-          </div>
-        </div>
-        ${item.description ? `<small class="description">${item.description}</small>` : ''}
-      </div>
-    `
-  }).join('')
+  $profiles.innerHTML = profiles.map(getItemHTML).join('')
   $profiles.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').addEventListener('click', copy)
   })
+}
+
+function copy(event) {
+  const $copyFrom = document.createElement('textarea')
+  $copyFrom.textContent = event.target.dataset.hash
+  document.body.appendChild($copyFrom)
+  $copyFrom.select()
+  document.execCommand('copy')
+  $copyFrom.blur()
+  document.body.removeChild($copyFrom)
+  event.target.innerText = 'copied!'
+  setTimeout(() => {
+    event.target.innerText = 'copy'
+  }, 1000)
 }
 
 async function getInput() {
@@ -190,7 +159,7 @@ async function fetchProfiles() {
           isProfile: true,
           isValidator: false,
           hash: item.address,
-          icon: item.icons.webp,
+          icon: item.icon ? item.icons.webp : null,
           title: item.title,
           description: item.description,
           www: item.www,
@@ -202,7 +171,7 @@ async function fetchProfiles() {
     return profiles
   } catch (error) {
     console.warn(error)
-    $errors.innerHTML += `<div class="error">${error}</div>`
+    $errors.innerHTML += `<div class="error"><b>Error while fetching profiles</b><br>${error}</div>`
     return []
   } finally {
     fetchingProfiles = false
@@ -224,7 +193,7 @@ async function fetchValidators() {
           isProfile: false,
           isValidator: true,
           hash: item.pub_key,
-          icon: item.meta.icon,
+          icon: item.meta.icon ? item.meta.icon : null,
           title: item.meta.title,
           description: item.meta.description,
           www: item.meta.www,
@@ -237,7 +206,7 @@ async function fetchValidators() {
     return validators
   } catch (error) {
     console.warn(error)
-    $errors.innerHTML += `<div class="error">${error}</div>`
+    $errors.innerHTML += `<div class="error"><b>Error while fetching validators</b><br>${error}</div>`
     return []
   } finally {
     fetchingValidators = false
@@ -268,7 +237,38 @@ function hasWord(item, word) {
   return address || description || title || www
 }
 
-function getLinkHTML(url) {
+function getItemHTML(item) {
+  const {hash, icon, title, description, matched, www, isVerified, isProfile, isValidator} = item
+  const avatar = icon ? `url('${icon}')` : 'none'
+  const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png">' : ''
+  const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
+  const descriptionHTML = description ? `<small class="description">${description}</small>` : ''
+  return `
+    <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
+      <div class="info">
+        <div class="avatar" style="background-image: ${avatar}">${verifiedHTML}</div>
+        <div class="header">
+          <span class="type"></span>
+          <span class="links">
+            ${getWebLink(www)}
+            ${getExplorerLink(hash)}
+            ${getMinterscanLink(hash)}
+            ${getInterchainLink(hash)}
+            ${getKarmaLink(hash)}
+          </span>
+          <div class="title">${title || 'Unnamed'}</div>
+          <code class="hash">
+            ${shortHash}&nbsp;
+            <span class="copy" data-hash="${hash}">copy</span>
+          </code>
+        </div>
+      </div>
+      ${descriptionHTML}
+    </div>
+  `
+}
+
+function getWebLink(url) {
   if (!url) {
     return ''
   }
@@ -288,8 +288,24 @@ function getLinkHTML(url) {
   return `<a class="link www" href="${url}" target="_blank" title="${url}"></a>`
 }
 
-function getShortHash(hash) {
-  return hash.slice(0, 7) + '...' + hash.slice(-5)
+function getExplorerLink(hash) {
+  const path = matchValidator(hash) ? 'validator' : 'address'
+  const link = `https://explorer.minter.network/${path}/${hash}`
+  return `<a class="link explorer" href="${link}" target="_blank" title="${link}"></a>`
+}
+function getMinterscanLink(hash) {
+  const path = matchValidator(hash) ? 'validator' : 'address'
+  const link = `https://minterscan.net/${path}/${hash}`
+  return `<a class="link minterscan" href="${link}" target="_blank" title="${link}"></a>`
+}
+function getInterchainLink(hash) {
+  const path = matchValidator(hash) ? 'nodes' : 'wallet'
+  const link = `https://minter.interchain.zone/en/${path}/${hash}`
+  return `<a class="link interchain" href="${link}" target="_blank" title="${link}"></a>`
+}
+function getKarmaLink(hash) {
+  const link = `https://karma.mn/#${hash}`
+  return matchAddress(hash) ? `<a class="link karma" href="link" target="_blank" title="${link}"></a>` : ''
 }
 
 function matchTwitter(value) {
@@ -463,18 +479,4 @@ function convertEnLayout(text) {
     .replace(/m/ig, '\u044C') // ь
     .replace(/\,/ig, '\u0431') // б
     .replace(/\./ig, '\u044E') // ю
-}
-
-function copy(event) {
-  const $copyFrom = document.createElement('textarea')
-  $copyFrom.textContent = event.target.dataset.hash
-  document.body.appendChild($copyFrom)
-  $copyFrom.select()
-  document.execCommand('copy')
-  $copyFrom.blur()
-  document.body.removeChild($copyFrom)
-  event.target.innerText = 'copied!'
-  setTimeout(() => {
-    event.target.innerText = 'copy'
-  }, 1000)
 }

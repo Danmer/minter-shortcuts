@@ -163,7 +163,9 @@ async function fetchProfiles() {
           hash: item.address,
           icon: item.icon ? item.icons.webp : null,
           title: item.title,
+          titleHTML: item.title ? sanitize(item.title) : null,
           description: item.description,
+          descriptionHTML: item.description ? sanitize(item.description) : null,
           www: item.www,
           isVerified: item.isVerified,
         }
@@ -197,7 +199,9 @@ async function fetchValidators() {
           hash: item.pub_key,
           icon: item.meta.icon ? item.meta.icon : null,
           title: item.meta.title,
+          titleHTML: item.meta.title ? sanitize(item.meta.title) : null,
           description: item.meta.description,
+          descriptionHTML: item.meta.description ? sanitize(item.meta.description) : null,
           www: item.meta.www,
           owner: item.owner_address,
           rating: item.rating,
@@ -240,11 +244,11 @@ function hasWord(item, word) {
 }
 
 function getItemHTML(item) {
-  const {hash, icon, title, description, matched, www, isVerified, isProfile, isValidator} = item
+  const {hash, icon, titleHTML, descriptionHTML, matched, www, isVerified, isProfile, isValidator} = item
   const avatar = icon ? `url('${icon}')` : 'none'
   const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
-  const descriptionHTML = description ? `<small class="description">${description}</small>` : ''
+  const description = descriptionHTML ? `<small class="description">${descriptionHTML}</small>` : ''
   return `
     <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
       <div class="info">
@@ -258,14 +262,14 @@ function getItemHTML(item) {
             ${getInterchainLink(hash)}
             ${getKarmaLink(hash)}
           </span>
-          <div class="title">${title || 'Unnamed'}</div>
+          <div class="title">${titleHTML || 'Unnamed'}</div>
           <code class="hash">
             ${shortHash}&nbsp;
             <span class="copy" data-hash="${hash}">copy</span>
           </code>
         </div>
       </div>
-      ${descriptionHTML}
+      ${description}
     </div>
   `
 }
@@ -333,6 +337,12 @@ function matchTransaction(value) {
 }
 function matchCoin(value) {
   return value && (value.match(/([A-Z0-9]{3,10})/) || [])[1];
+}
+
+function sanitize(html) {
+	const temp = document.createElement('div')
+	temp.textContent = html
+	return temp.innerHTML
 }
 
 function transliterateRu(text) {

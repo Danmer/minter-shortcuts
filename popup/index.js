@@ -7,6 +7,8 @@ let $validators = document.querySelector('.validators')
 let $profiles = document.querySelector('.profiles')
 let $update = document.querySelector('.update')
 
+let $items = []
+let $avatars = []
 let profiles = []
 let validators = []
 let fetchingProfiles = false
@@ -15,8 +17,8 @@ let input = ''
 
 init()
 
-
 async function init() {
+  window.addEventListener('scroll', throttle(lazyLoad, 30))
   $input.addEventListener('focus', $input.select)
   $input.addEventListener('input', search)
   $update.addEventListener('click', fetchItems)
@@ -71,10 +73,11 @@ function search() {
   matchItems(validators)
   matchItems(profiles)
   const items = validators.concat(profiles)
-  document.querySelectorAll('.item').forEach(($item, index) => {
+  $items.forEach(($item, index) => {
     $item.classList[items[index].matched ? 'add' : 'remove']('matched')
   })
   window.scroll(0, 0)
+  lazyLoad()
 }
 
 function drawStatus() {
@@ -90,9 +93,12 @@ function drawValidators() {
     $item.querySelector('.copy').removeEventListener('click', copy)
   })
   $validators.innerHTML = validators.map(getItemHTML).join('')
+  $items = document.querySelectorAll('.item')
+  $avatars = document.querySelectorAll('.avatar')
   $validators.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').addEventListener('click', copy)
   })
+  lazyLoad()
 }
 
 function drawProfiles() {
@@ -100,8 +106,19 @@ function drawProfiles() {
     $item.querySelector('.copy').removeEventListener('click', copy)
   })
   $profiles.innerHTML = profiles.map(getItemHTML).join('')
+  $items = document.querySelectorAll('.item')
+  $avatars = document.querySelectorAll('.avatar')
   $profiles.querySelectorAll('.item').forEach($item => {
     $item.querySelector('.copy').addEventListener('click', copy)
+  })
+  lazyLoad()
+}
+
+function lazyLoad() {
+  $items.forEach(($item, index) => {
+    if ($item.classList.contains('matched') && $item.offsetTop < window.innerHeight + window.pageYOffset + 300) {
+      $avatars[index].style.backgroundImage = $avatars[index].dataset.url
+    }
   })
 }
 
@@ -252,7 +269,7 @@ function getItemHTML(item) {
   return `
     <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
       <div class="info">
-        <div class="avatar" style="background-image: ${avatar}">${verifiedHTML}</div>
+        <div class="avatar" style="background-image: none" data-url="${avatar}">${verifiedHTML}</div>
         <div class="header">
           <span class="type"></span>
           <span class="links">
@@ -492,3 +509,35 @@ function convertEnLayout(text) {
     .replace(/\,/ig, '\u0431') // б
     .replace(/\./ig, '\u044E') // ю
 }
+
+function throttle(func, wait, options) {
+  var context, args, result;
+  var timeout = null;
+  var previous = 0;
+  if (!options) options = {};
+  var later = function() {
+    previous = options.leading === false ? 0 : Date.now();
+    timeout = null;
+    result = func.apply(context, args);
+    if (!timeout) context = args = null;
+  };
+  return function() {
+    var now = Date.now();
+    if (!previous && options.leading === false) previous = now;
+    var remaining = wait - (now - previous);
+    context = this;
+    args = arguments;
+    if (remaining <= 0 || remaining > wait) {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      previous = now;
+      result = func.apply(context, args);
+      if (!timeout) context = args = null;
+    } else if (!timeout && options.trailing !== false) {
+      timeout = setTimeout(later, remaining);
+    }
+    return result;
+  };
+};

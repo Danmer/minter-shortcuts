@@ -265,6 +265,7 @@ function getItemHTML(item) {
   const avatar = icon ? `url('${icon}')` : 'none'
   const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
+  const title = titleHTML || `Unnamed ${isProfile ? 'profile' : 'validator'}`
   const description = descriptionHTML ? `<small class="description">${descriptionHTML}</small>` : ''
   return `
     <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
@@ -279,7 +280,7 @@ function getItemHTML(item) {
             ${getInterchainLink(hash)}
             ${getKarmaLink(hash)}
           </span>
-          <div class="title">${titleHTML || 'Unnamed'}</div>
+          <div class="title">${title}</div>
           <code class="hash">
             ${shortHash}&nbsp;
             <span class="copy" data-hash="${hash}">copy</span>

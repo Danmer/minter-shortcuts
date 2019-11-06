@@ -7,6 +7,7 @@ let $validators = document.querySelector('.validators')
 let $profiles = document.querySelector('.profiles')
 let $update = document.querySelector('.update')
 
+let items = []
 let $items = []
 let $avatars = []
 let profiles = []
@@ -40,44 +41,34 @@ function fetchItems() {
 
 function updateItems() {
   $errors.innerHTML = ''
+  items = []
   profiles = []
   validators = []
   Promise.all([
     getValidators().then(data => {
       validators = data
-      matchItems(validators)
+      items = validators.concat(items)
+      matchItems()
       drawValidators()
     }),
     getProfiles().then(data => {
       profiles = data
-      matchItems(profiles)
+      items = items.concat(profiles)
+      matchItems()
       drawProfiles()
     }),
   ])
 }
 
-function matchItems(items) {
-  const words = input.split(/\s+/)
-  items.forEach(item => {
-    item.matched = true
-    words.forEach(word => {
-      item.matched = item.matched && hasWordVariations(item, word)
-    })
-  })
-  drawStatus()
-}
-
 function search() {
   input = $input.value.toLowerCase().replace(/^[@#]/, '')
   app.storage.local.set({minterSearch: input})
-  matchItems(validators)
-  matchItems(profiles)
-  const items = validators.concat(profiles)
-  $items.forEach(($item, index) => {
-    $item.classList[items[index].matched ? 'add' : 'remove']('matched')
+  matchItems()
+  items.forEach(($item, index) => {
+    $items[index].classList[items[index].matched ? 'add' : 'remove']('matched')
   })
   window.scroll(0, 0)
-  lazyLoad()
+  setTimeout(lazyLoad, 100)
 }
 
 function drawStatus() {
@@ -89,37 +80,33 @@ function drawStatus() {
 }
 
 function drawValidators() {
-  $validators.querySelectorAll('.item').forEach($item => {
-    $item.querySelector('.copy').removeEventListener('click', copy)
-  })
   $validators.innerHTML = validators.map(getItemHTML).join('')
   $items = document.querySelectorAll('.item')
   $avatars = document.querySelectorAll('.avatar')
-  $validators.querySelectorAll('.item').forEach($item => {
-    $item.querySelector('.copy').addEventListener('click', copy)
-  })
-  lazyLoad()
+  $validators.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
+  $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
+  setTimeout(lazyLoad, 100)
 }
 
 function drawProfiles() {
-  $profiles.querySelectorAll('.item').forEach($item => {
-    $item.querySelector('.copy').removeEventListener('click', copy)
-  })
   $profiles.innerHTML = profiles.map(getItemHTML).join('')
   $items = document.querySelectorAll('.item')
   $avatars = document.querySelectorAll('.avatar')
-  $profiles.querySelectorAll('.item').forEach($item => {
-    $item.querySelector('.copy').addEventListener('click', copy)
-  })
-  lazyLoad()
+  $profiles.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
+  $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
+  setTimeout(lazyLoad, 100)
 }
 
 function lazyLoad() {
-  $items.forEach(($item, index) => {
-    if ($item.classList.contains('matched') && $item.offsetTop < window.innerHeight + window.pageYOffset + 300) {
-      $avatars[index].style.backgroundImage = $avatars[index].dataset.url
+  items.forEach((item, index) => {
+    if (item.matched && !$avatars[index].src && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300) {
+      $avatars[index].src = $avatars[index].dataset.src
     }
   })
+}
+
+function repairAvatar() {
+  this.src = '../img/error_32.png'
 }
 
 function copy(event) {
@@ -237,6 +224,17 @@ async function fetchValidators() {
   }
 }
 
+function matchItems() {
+  const words = input.split(/\s+/)
+  items.forEach(item => {
+    item.matched = true
+    words.forEach(word => {
+      item.matched = item.matched && hasWordVariations(item, word)
+    })
+  })
+  drawStatus()
+}
+
 function hasWordVariations(item, word) {
   if (!item) {
     return false
@@ -262,7 +260,6 @@ function hasWord(item, word) {
 
 function getItemHTML(item) {
   const {hash, icon, titleHTML, descriptionHTML, matched, www, isVerified, isProfile, isValidator} = item
-  const avatar = icon ? `url('${icon}')` : 'none'
   const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
   const title = titleHTML || `Unnamed ${isProfile ? 'profile' : 'validator'}`
@@ -270,7 +267,8 @@ function getItemHTML(item) {
   return `
     <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
       <div class="info">
-        <div class="avatar" style="background-image: none" data-url="${avatar}">${verifiedHTML}</div>
+        <img class="avatar" width="32" height="32" data-src="${icon || '../img/empty_32.png'}" alt="" />
+        ${verifiedHTML}
         <div class="header">
           <span class="type"></span>
           <span class="links">

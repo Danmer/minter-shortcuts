@@ -77,9 +77,9 @@ function search() {
 function drawStatus() {
   const matchedProfiles = profiles.filter(profile => profile.matched)
   const matchedValidators = validators.filter(validator => validator.matched)
-  const profilesCount = fetchingProfiles ? 'loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
-  const validatorsCount = fetchingValidators ? 'loading' : (input ? `${matchedValidators.length}/${validators.length}` : validators.length)
-  $status.innerText = `${profilesCount} profiles, ${validatorsCount} validators`
+  const profilesCount = fetchingProfiles ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
+  const validatorsCount = fetchingValidators ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedValidators.length}/${validators.length}` : validators.length)
+  $status.innerHTML = `${profilesCount} profiles, ${validatorsCount} validators`
 }
 
 function drawValidators() {

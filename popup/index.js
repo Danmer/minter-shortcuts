@@ -102,8 +102,9 @@ function drawProfiles() {
 
 function lazyLoad() {
   items.forEach((item, index) => {
-    if (item.matched && !$avatars[index].src && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300 && $items[index].offsetTop > window.pageYOffset - 300) {
+    if (item.matched && !$avatars[index].dataset.loaded && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300 && $items[index].offsetTop > window.pageYOffset - 300) {
       $avatars[index].src = $avatars[index].dataset.src
+      $avatars[index].dataset.loaded = true
     }
   })
 }
@@ -270,7 +271,7 @@ function getItemHTML(item) {
   return `
     <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
       <div class="info">
-        <img class="avatar" width="32" height="32" data-src="${icon || '../img/empty_32.png'}" alt="" />
+        <img class="avatar" width="32" height="32" src="../img/loading_32.gif" data-src="${icon || '../img/empty_32.png'}" alt="" />
         ${verifiedHTML}
         <div class="header">
           <span class="type"></span>

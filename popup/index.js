@@ -102,7 +102,7 @@ function drawProfiles() {
 
 function lazyLoad() {
   items.forEach((item, index) => {
-    if (item.matched && !$avatars[index].src && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300) {
+    if (item.matched && !$avatars[index].src && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300 && $items[index].offsetTop > window.pageYOffset - 300) {
       $avatars[index].src = $avatars[index].dataset.src
     }
   })

@@ -16,12 +16,15 @@ let fetchingProfiles = false
 let fetchingValidators = false
 let input = ''
 
+const throttledLazyLoad = throttle(lazyLoad, 100)
+const debouncedSearch = debounce(search, 300)
+
 init()
 
 async function init() {
-  window.addEventListener('scroll', throttle(lazyLoad, 30))
+  window.addEventListener('scroll', throttledLazyLoad)
+  $input.addEventListener('input', debouncedSearch)
   $input.addEventListener('focus', $input.select)
-  $input.addEventListener('input', search)
   $update.addEventListener('click', fetchItems)
 
   input = await getInput()
@@ -68,7 +71,7 @@ function search() {
     $items[index].classList[items[index].matched ? 'add' : 'remove']('matched')
   })
   window.scroll(0, 0)
-  setTimeout(lazyLoad, 100)
+  throttledLazyLoad()
 }
 
 function drawStatus() {
@@ -85,7 +88,7 @@ function drawValidators() {
   $avatars = document.querySelectorAll('.avatar')
   $validators.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
   $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
-  setTimeout(lazyLoad, 100)
+  throttledLazyLoad()
 }
 
 function drawProfiles() {
@@ -94,7 +97,7 @@ function drawProfiles() {
   $avatars = document.querySelectorAll('.avatar')
   $profiles.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
   $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
-  setTimeout(lazyLoad, 100)
+  throttledLazyLoad()
 }
 
 function lazyLoad() {
@@ -509,39 +512,30 @@ function convertEnLayout(text) {
     .replace(/\./ig, '\u044E') // ю
 }
 
-function throttle(func, wait, options = {}) {
-  let context, args, result
+function debounce(fn, time) {
+  let timeout
+  return function() {
+    const functionCall = () => fn.apply(this, arguments)
+    clearTimeout(timeout)
+    timeout = setTimeout(functionCall, time)
+  }
+}
+
+function throttle(callback, wait, immediate = false) {
   let timeout = null
-  let previous = 0
-  function later() {
-    previous = options.leading === false ? 0 : Date.now()
-    timeout = null
-    result = func.apply(context, args)
+  let initialCall = true
+  return function() {
+    const callNow = immediate && initialCall
+    const next = () => {
+      callback.apply(this, arguments)
+      timeout = null
+    }
+    if (callNow) {
+      initialCall = false
+      next()
+    }
     if (!timeout) {
-      context = args = null
+      timeout = setTimeout(next, wait)
     }
   }
-  return function() {
-    const now = Date.now()
-    if (!previous && options.leading === false) {
-      previous = now
-    }
-    const remaining = wait - (now - previous)
-    context = this
-    args = arguments
-    if (remaining <= 0 || remaining > wait) {
-      if (timeout) {
-        clearTimeout(timeout)
-        timeout = null
-      }
-      previous = now
-      result = func.apply(context, args)
-      if (!timeout) {
-        context = args = null
-      }
-    } else if (!timeout && options.trailing !== false) {
-      timeout = setTimeout(later, remaining)
-    }
-    return result;
-  };
-};
+}

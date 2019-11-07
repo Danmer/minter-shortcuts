@@ -88,6 +88,7 @@ function drawValidators() {
   $avatars = document.querySelectorAll('.avatar')
   $validators.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
   $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
+  $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onclick = reloadAvatar)
   throttledLazyLoad()
 }
 
@@ -97,6 +98,7 @@ function drawProfiles() {
   $avatars = document.querySelectorAll('.avatar')
   $profiles.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
   $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
+  $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onclick = reloadAvatar)
   throttledLazyLoad()
 }
 
@@ -111,6 +113,12 @@ function lazyLoad() {
 
 function repairAvatar() {
   this.src = '../img/error_32.png'
+}
+function reloadAvatar() {
+  this.src = '../img/loading_32.gif'
+  setTimeout(() => {
+    this.src = this.dataset.src + '?' + Date.now()
+  }, 500)
 }
 
 function copy(event) {

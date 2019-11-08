@@ -34,10 +34,17 @@ async function init() {
   updateItems()
 }
 
-function fetchItems() {
-  app.storage.local.set({minterProfilesUpdated: 0, minterValidatorsUpdated: 0}, () => {
-    updateItems()
-  })
+function getFromStorage(fields = []) {
+  return new Promise(resolve => app.storage.local.get(fields, resolve))
+}
+
+function saveToStorage(object = {}) {
+  return new Promise(resolve => app.storage.local.set(object, resolve))
+}
+
+async function fetchItems() {
+  await saveToStorage({minterProfilesUpdated: 0, minterValidatorsUpdated: 0})
+  updateItems()
 }
 
 function updateItems() {
@@ -57,7 +64,7 @@ function updateItems() {
 
 function search() {
   input = $input.value.toLowerCase().replace(/^[@#]/, '')
-  app.storage.local.set({minterSearch: input})
+  saveToStorage({minterSearch: input})
   matchItems()
   items.forEach(($item, index) => {
     $items[index].classList[items[index].matched ? 'add' : 'remove']('matched')
@@ -141,35 +148,24 @@ function copy(event) {
 }
 
 async function getInput() {
-  return new Promise(resolve => {
-    app.storage.local.get(['minterSearch'], data => {
-      resolve(data.minterSearch || '')
-    })
-  })
+  const data = await getFromStorage(['minterSearch'])
+  return data.minterSearch || ''
 }
 
 async function getProfiles() {
-  return new Promise(resolve => {
-    app.storage.local.get(['minterProfiles', 'minterProfilesUpdated'], async data => {
-      const updated = data.minterProfilesUpdated || 0
-      const cached = data.minterProfiles || []
-      const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-      const profiles = isUptodate && cached.length ? cached : await fetchProfiles()
-      resolve(profiles)
-    })
-  })
+  const data = await getFromStorage(['minterProfiles', 'minterProfilesUpdated'])
+  const updated = data.minterProfilesUpdated || 0
+  const cached = data.minterProfiles || []
+  const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
+  return isUptodate && cached.length ? cached : await fetchProfiles()
 }
 
 async function getValidators() {
-  return new Promise(resolve => {
-    app.storage.local.get(['minterValidators', 'minterValidatorsUpdated'], async data => {
-      const updated = data.minterValidatorsUpdated || 0
-      const cached = data.minterValidators || []
-      const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-      const validators = isUptodate && cached.length ? cached : await fetchValidators()
-      resolve(validators)
-    })
-  })
+  const data = await getFromStorage(['minterValidators', 'minterValidatorsUpdated'])
+  const updated = data.minterValidatorsUpdated || 0
+  const cached = data.minterValidators || []
+  const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
+  return isUptodate && cached.length ? cached : await fetchValidators()
 }
 
 async function fetchProfiles() {
@@ -180,7 +176,7 @@ async function fetchProfiles() {
     const data = await fetch(`https://minterscan.pro/profiles`).then(response => response.json())
     try {
       profiles = data.filter(filterProfile).sort(sortProfile).map(parseProfile)
-      app.storage.local.set({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
+      saveToStorage({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
       $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of profiles from Minterscan. Check if the extension is up to date and try to update the data again.</div>`
@@ -202,7 +198,7 @@ async function fetchValidators() {
     const data = await fetch(`https://minterscan.pro/validators`).then(response => response.json())
     try {
       validators = data.filter(filterValidator).sort(sortValidator).map(parseValidator)
-      app.storage.local.set({minterValidators: validators, minterValidatorsUpdated: Date.now()})
+      saveToStorage({minterValidators: validators, minterValidatorsUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
       $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of validators from Minterscan. Check if the extension is up to date and try to update the data again.</div>`

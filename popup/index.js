@@ -1,5 +1,5 @@
 const app = typeof chrome === 'undefined' ? browser : chrome
-const version = '0.3.6'
+const version = '0.3.6.1'
 const cacheTime = 24 * 60 * 60 * 1000
 
 const $input = document.querySelector('.input')

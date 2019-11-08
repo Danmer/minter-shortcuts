@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Minter Shortcuts",
-  "version": "0.3.6",
+  "version": "0.3.6.1",
   "description": "Shows a list of Minter profiles and validators in the popup menu. Adds links to the Right Click menu to explore selected addresses.",
   "author": "Kotlyarov brothers",
   "permissions": ["contextMenus", "storage"],

@@ -3,15 +3,13 @@ const app = typeof chrome === 'undefined' ? browser : chrome
 let $input = document.querySelector('.input')
 let $status = document.querySelector('.status')
 let $errors = document.querySelector('.errors')
-let $validators = document.querySelector('.validators')
-let $profiles = document.querySelector('.profiles')
+let $result = document.querySelector('.result')
 let $update = document.querySelector('.update')
 
 let items = []
 let $items = []
 let $avatars = []
-let profiles = []
-let validators = []
+let $copyButtons = []
 let fetchingProfiles = false
 let fetchingValidators = false
 let input = ''
@@ -45,21 +43,15 @@ function fetchItems() {
 function updateItems() {
   $errors.innerHTML = ''
   items = []
-  profiles = []
-  validators = []
   Promise.all([
-    getValidators().then(data => {
-      validators = data
+    getValidators().then(validators => {
       items = validators.concat(items)
-      matchItems()
-      drawValidators()
+      drawItems()
     }),
-    getProfiles().then(data => {
-      profiles = data
+    getProfiles().then(profiles => {
       items = items.concat(profiles)
-      matchItems()
-      drawProfiles()
-    }),
+      drawItems()
+    })
   ])
 }
 
@@ -75,6 +67,8 @@ function search() {
 }
 
 function drawStatus() {
+  const profiles = items.filter(item => matchAddress(item.hash))
+  const validators = items.filter(item => matchValidator(item.hash))
   const matchedProfiles = profiles.filter(profile => profile.matched)
   const matchedValidators = validators.filter(validator => validator.matched)
   const profilesCount = fetchingProfiles ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
@@ -82,24 +76,35 @@ function drawStatus() {
   $status.innerHTML = `${profilesCount} profiles, ${validatorsCount} validators`
 }
 
-function drawValidators() {
-  $validators.innerHTML = validators.map(getItemHTML).join('')
+function drawItems() {
+  matchItems()
+  removeEventListeners()
+  $result.innerHTML = items.map(getItemHTML).join('')
   $items = document.querySelectorAll('.item')
   $avatars = document.querySelectorAll('.avatar')
-  $validators.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
-  $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
-  $validators.querySelectorAll('.avatar').forEach($avatar => $avatar.onclick = reloadAvatar)
+  $copyButtons = document.querySelectorAll('.copy')
+  addEventListeners()
   throttledLazyLoad()
 }
 
-function drawProfiles() {
-  $profiles.innerHTML = profiles.map(getItemHTML).join('')
-  $items = document.querySelectorAll('.item')
-  $avatars = document.querySelectorAll('.avatar')
-  $profiles.querySelectorAll('.copy').forEach($copy => $copy.onclick = copy)
-  $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onerror = repairAvatar)
-  $profiles.querySelectorAll('.avatar').forEach($avatar => $avatar.onclick = reloadAvatar)
-  throttledLazyLoad()
+function addEventListeners() {
+  $copyButtons.forEach($copyButton => {
+    $copyButton.addEventListener('click', copy)
+  })
+  $avatars.forEach($avatar => {
+    $avatar.addEventListener('error', repairAvatar)
+    $avatar.addEventListener('click', reloadAvatar)
+  })
+}
+
+function removeEventListeners() {
+  $copyButtons.forEach($copyButton => {
+    $copyButton.removeEventListener('click', copy)
+  })
+  $avatars.forEach($avatar => {
+    $avatar.removeEventListener('error', repairAvatar)
+    $avatar.removeEventListener('click', reloadAvatar)
+  })
 }
 
 function lazyLoad() {
@@ -168,71 +173,92 @@ async function getValidators() {
 }
 
 async function fetchProfiles() {
+  fetchingProfiles = true
+  drawStatus()
+  let profiles = []
   try {
-    fetchingProfiles = true
-    drawStatus()
-    const profiles = await fetch(`https://minterscan.pro/profiles`).then(res => res.json()).then(items => {
-      return items.map(item => {
-        return {
-          isProfile: true,
-          isValidator: false,
-          hash: item.address,
-          icon: item.icon ? item.icons.webp : null,
-          title: item.title,
-          titleHTML: item.title ? sanitize(item.title) : null,
-          description: item.description,
-          descriptionHTML: item.description ? sanitize(item.description) : null,
-          www: item.www,
-          isVerified: item.isVerified,
-        }
-      })
-    })
-    app.storage.local.set({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
-    return profiles
+    const data = await fetch(`https://minterscan.pro/profiles`).then(response => response.json())
+    try {
+      profiles = data.filter(filterProfile).sort(sortProfile).map(parseProfile)
+      app.storage.local.set({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
+    } catch (error) {
+      console.warn(error);
+      $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of profiles from Minterscan. Check if the extension is up to date and try to update the data again.</div>`
+    }
   } catch (error) {
-    console.warn(error)
-    $errors.innerHTML += `<div class="error"><b>Error while fetching profiles</b><br>${error}</div>`
-    return []
-  } finally {
-    fetchingProfiles = false
-    drawStatus()
+    console.warn(error);
+    $errors.innerHTML += `<div class="error"><b>Network error</b><br>Can't download the list of profiles from Minterscan.<br>Try to update the data again.</div>`
   }
+  fetchingProfiles = false
+  drawStatus()
+  return profiles
 }
 
 async function fetchValidators() {
+  fetchingValidators = true
+  drawStatus()
+  let validators = []
   try {
-    fetchingValidators = true
-    drawStatus()
-    const validators = await fetch(`https://minterscan.pro/validators`).then(res => res.json()).then(items => {
-      return items.filter(item => {
-        return item.status === 2
-      }).sort((item1, item2) => {
-        return item2.rating - item1.rating
-      }).map(item => {
-        return {
-          isProfile: false,
-          isValidator: true,
-          hash: item.pub_key,
-          icon: item.meta.icon ? item.meta.icon : null,
-          title: item.meta.title,
-          titleHTML: item.meta.title ? sanitize(item.meta.title) : null,
-          description: item.meta.description,
-          descriptionHTML: item.meta.description ? sanitize(item.meta.description) : null,
-          www: item.meta.www,
-          owner: item.owner_address,
-          rating: item.rating,
-        }
-      })
-    })
-    app.storage.local.set({minterValidators: validators, minterValidatorsUpdated: Date.now()})
-    return validators
+    const data = await fetch(`https://minterscan.pro/validators`).then(response => response.json())
+    try {
+      validators = data.filter(filterValidator).sort(sortValidator).map(parseValidator)
+      app.storage.local.set({minterValidators: validators, minterValidatorsUpdated: Date.now()})
+    } catch (error) {
+      console.warn(error);
+      $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of validators from Minterscan. Check if the extension is up to date and try to update the data again.</div>`
+    }
   } catch (error) {
-    console.warn(error)
-    $errors.innerHTML += `<div class="error"><b>Error while fetching validators</b><br>${error}</div>`
-    return []
-  } finally {
-    fetchingValidators = false
-    drawStatus()
+    console.warn(error);
+    $errors.innerHTML += `<div class="error"><b>Network error</b><br>Can't download the list of validators from Minterscan.<br>Try to update the data again.</div>`
+  }
+  fetchingValidators = false
+  drawStatus()
+  return validators
+}
+
+function filterValidator(item) {
+  return item.status === 2 && item.meta.title
+}
+
+function filterProfile(item) {
+  return true
+}
+
+function sortValidator(item1, item2) {
+  return item2.rating - item1.rating
+}
+function sortProfile(item1, item2) {
+  return item1.title.localeCompare(item2.title)
+}
+
+function parseValidator(validator) {
+  return {
+    isProfile: false,
+    isValidator: true,
+    hash: validator.pub_key,
+    icon: validator.meta.icon ? validator.meta.icon : null,
+    title: validator.meta.title,
+    titleHTML: validator.meta.title ? sanitize(validator.meta.title) : null,
+    description: validator.meta.description,
+    descriptionHTML: validator.meta.description ? sanitize(validator.meta.description) : null,
+    www: validator.meta.www,
+    owner: validator.owner_address,
+    rating: validator.rating,
+  }
+}
+
+function parseProfile(profile) {
+  return {
+    isProfile: true,
+    isValidator: false,
+    hash: profile.address,
+    icon: profile.icon ? profile.icons.webp : null,
+    title: profile.title,
+    titleHTML: profile.title ? sanitize(profile.title) : null,
+    description: profile.description,
+    descriptionHTML: profile.description ? sanitize(profile.description) : null,
+    www: profile.www,
+    isVerified: profile.isVerified,
   }
 }
 

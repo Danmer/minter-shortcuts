@@ -1,4 +1,6 @@
 const app = typeof chrome === 'undefined' ? browser : chrome
+const version = '0.3.6'
+const cacheTime = 24 * 60 * 60 * 1000
 
 const $input = document.querySelector('.input')
 const $status = document.querySelector('.status')
@@ -159,19 +161,25 @@ async function getInput() {
 }
 
 async function getProfiles() {
-  const data = await getFromStorage(['minterProfiles', 'minterProfilesUpdated'])
-  const updated = data.minterProfilesUpdated || 0
-  const cached = data.minterProfiles || []
-  const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-  return isUptodate && cached.length ? cached : await fetchProfiles()
+  const data = await getFromStorage(['minterProfiles', 'minterProfilesUpdated', 'minterVersion'])
+  const updateTime = data.minterProfilesUpdated || 0
+  const cacheVersion = data.minterVersion || '0'
+  const cachedItems = data.minterProfiles || []
+  const isExpired = updateTime + cacheTime < Date.now()
+  const isUpdated = cacheVersion === version
+  const hasItems = cachedItems.length
+  return isUpdated && !isExpired && hasItems ? cachedItems : await fetchProfiles()
 }
 
 async function getValidators() {
-  const data = await getFromStorage(['minterValidators', 'minterValidatorsUpdated'])
-  const updated = data.minterValidatorsUpdated || 0
-  const cached = data.minterValidators || []
-  const isUptodate = updated + 24 * 60 * 60 * 1000 > Date.now()
-  return isUptodate && cached.length ? cached : await fetchValidators()
+  const data = await getFromStorage(['minterValidators', 'minterValidatorsUpdated', 'minterVersion'])
+  const updateTime = data.minterValidatorsUpdated || 0
+  const cacheVersion = data.minterVersion || '0'
+  const cachedItems = data.minterValidators || []
+  const isExpired = updateTime + cacheTime < Date.now()
+  const isUpdated = cacheVersion === version
+  const hasItems = cachedItems.length
+  return isUpdated && !isExpired && hasItems ? cachedItems : await fetchValidators()
 }
 
 async function fetchProfiles() {
@@ -182,7 +190,7 @@ async function fetchProfiles() {
     const data = await fetch(`https://minterscan.pro/profiles`).then(response => response.json())
     try {
       profiles = data.filter(filterProfile).sort(sortProfile).map(parseProfile)
-      saveToStorage({minterProfiles: profiles, minterProfilesUpdated: Date.now()})
+      saveToStorage({minterVersion: version, minterProfiles: profiles, minterProfilesUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
       $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of profiles from Minterscan. Check if the extension is up to date and try to update the data again.</div>`
@@ -204,7 +212,7 @@ async function fetchValidators() {
     const data = await fetch(`https://minterscan.pro/validators`).then(response => response.json())
     try {
       validators = data.filter(filterValidator).sort(sortValidator).map(parseValidator)
-      saveToStorage({minterValidators: validators, minterValidatorsUpdated: Date.now()})
+      saveToStorage({minterVersion: version, minterValidators: validators, minterValidatorsUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
       $errors.innerHTML += `<div class="error"><b>Extension error</b><br>Can't parse the list of validators from Minterscan. Check if the extension is up to date and try to update the data again.</div>`

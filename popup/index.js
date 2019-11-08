@@ -74,8 +74,8 @@ function search() {
 }
 
 function drawStatus() {
-  const profiles = items.filter(item => matchAddress(item.hash))
-  const validators = items.filter(item => matchValidator(item.hash))
+  const profiles = items.filter(item => item.type === 'profile')
+  const validators = items.filter(item => item.type === 'validator')
   const matchedProfiles = profiles.filter(profile => profile.matched)
   const matchedValidators = validators.filter(validator => validator.matched)
   const profilesCount = fetchingProfiles ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
@@ -126,6 +126,7 @@ function lazyLoad() {
 function repairAvatar() {
   this.src = '../img/error_32.png'
 }
+
 function reloadAvatar() {
   this.src = '../img/loading_32.gif'
   setTimeout(() => {
@@ -133,17 +134,17 @@ function reloadAvatar() {
   }, 500)
 }
 
-function copy(event) {
+function copy() {
   const $copyFrom = document.createElement('textarea')
-  $copyFrom.textContent = event.target.dataset.hash
+  $copyFrom.textContent = this.dataset.hash
   document.body.appendChild($copyFrom)
   $copyFrom.select()
   document.execCommand('copy')
   $copyFrom.blur()
   document.body.removeChild($copyFrom)
-  event.target.innerText = 'copied!'
+  this.innerText = 'copied!'
   setTimeout(() => {
-    event.target.innerText = 'copy'
+    this.innerText = 'copy'
   }, 1000)
 }
 
@@ -229,14 +230,11 @@ function sortProfile(item1, item2) {
 
 function parseValidator(validator) {
   return {
-    isProfile: false,
-    isValidator: true,
+    type: 'validator',
     hash: validator.pub_key,
     icon: validator.meta.icon ? validator.meta.icon : null,
     title: validator.meta.title,
-    titleHTML: validator.meta.title ? sanitize(validator.meta.title) : null,
     description: validator.meta.description,
-    descriptionHTML: validator.meta.description ? sanitize(validator.meta.description) : null,
     www: validator.meta.www,
     owner: validator.owner_address,
     rating: validator.rating,
@@ -245,14 +243,11 @@ function parseValidator(validator) {
 
 function parseProfile(profile) {
   return {
-    isProfile: true,
-    isValidator: false,
+    type: 'profile',
     hash: profile.address,
     icon: profile.icon ? profile.icons.webp : null,
     title: profile.title,
-    titleHTML: profile.title ? sanitize(profile.title) : null,
     description: profile.description,
-    descriptionHTML: profile.description ? sanitize(profile.description) : null,
     www: profile.www,
     isVerified: profile.isVerified,
   }
@@ -293,103 +288,94 @@ function hasWord(item, word) {
 }
 
 function getItemHTML(item) {
-  const {hash, icon, titleHTML, descriptionHTML, matched, www, isVerified, isProfile, isValidator} = item
+  const {hash, icon, title, description, matched, www, isVerified, type} = item
+  const avatarHTML = `<img class="avatar" width="32" height="32" src="../img/loading_32.gif" data-src="${icon || '../img/empty_32.png'}" alt="" />`
   const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
-  const title = titleHTML || `Unnamed ${isProfile ? 'profile' : 'validator'}`
-  const description = descriptionHTML ? `<small class="description">${descriptionHTML}</small>` : ''
+  const titleHTML = sanitizeHTML(title) || `Unnamed ${type}`
+  const descriptionHTML = description ? `<small class="description">${sanitizeHTML(description)}</small>` : ''
   return `
-    <div class="item ${isValidator ? 'validator' : 'profile'}${matched ? ' matched' : ''}">
+    <div class="item ${type} ${matched ? 'matched' : ''}">
       <div class="info">
-        <img class="avatar" width="32" height="32" src="../img/loading_32.gif" data-src="${icon || '../img/empty_32.png'}" alt="" />
+        ${avatarHTML}
         ${verifiedHTML}
         <div class="header">
           <span class="type"></span>
           <span class="links">
-            ${getWebLink(www)}
-            ${getExplorerLink(hash)}
-            ${getMinterscanLink(hash)}
-            ${getInterchainLink(hash)}
-            ${getKarmaLink(hash)}
+            ${getWebLinkHTML(www)}
+            ${getExplorerLinkHTML(item)}
+            ${getMinterscanLinkHTML(item)}
+            ${getInterchainLinkHTML(item)}
+            ${getKarmaLinkHTML(item)}
           </span>
-          <div class="title">${title}</div>
-          <code class="hash">
+          <div class="title">${titleHTML}</div>
+          <code class="hash" title="${hash}">
             ${shortHash}&nbsp;
             <span class="copy" data-hash="${hash}">copy</span>
           </code>
         </div>
       </div>
-      ${description}
+      ${descriptionHTML}
     </div>
   `
 }
 
-function getWebLink(url) {
-  if (!url) {
-    return ''
-  }
-  const telegram = matchTelegram(url)
-  const vkontakte = matchVkontakte(url)
-  const facebook = matchFacebook(url)
-  const twitter = matchTwitter(url)
+function getWebLinkHTML(link) {
+  const telegram = getTelegramName(link)
+  const vkontakte = getVkontakteName(link)
+  const facebook = getFacebookName(link)
+  const twitter = getTwitterName(link)
+  let type = 'web'
   if (telegram) {
-    return `<a class="link telegram" href="https://t.me/${telegram}" target="_blank" title="https://t.me/${telegram}"></a>`
+    type = 'telegram'
+    link = `https://t.me/${telegram}`
   } else if (vkontakte) {
-    return `<a class="link vkontakte" href="https://vk.com/${vkontakte}" target="_blank" title="https://vk.com/${vkontakte}"></a>`
+    type = 'vkontakte'
+    link = `https://vk.com/${vkontakte}`
   } else if (facebook) {
-    return `<a class="link facebook" href="https://facebook.com/${facebook}" target="_blank" title="https://facebook.com/${facebook}"></a>`
+    type = 'facebook'
+    link = `https://facebook.com/${facebook}`
   } else if (twitter) {
-    return `<a class="link twitter" href="https://twitter.com/${twitter}" target="_blank" title="https://twitter.com/${twitter}"></a>`
+    type = 'twitter'
+    link = `https://twitter.com/${twitter}`
   }
-  return `<a class="link www" href="${url}" target="_blank" title="${url}"></a>`
+  return `<a class="link ${type}" href="${link}" target="_blank" title="${link}"></a>`
 }
 
-function getExplorerLink(hash) {
-  const path = matchValidator(hash) ? 'validator' : 'address'
-  const link = `https://explorer.minter.network/${path}/${hash}`
+function getExplorerLinkHTML(item) {
+  const path = item.type === 'validator' ? 'validator' : 'address'
+  const link = `https://explorer.minter.network/${path}/${item.hash}`
   return `<a class="link explorer" href="${link}" target="_blank" title="${link}"></a>`
 }
-function getMinterscanLink(hash) {
-  const path = matchValidator(hash) ? 'validator' : 'address'
-  const link = `https://minterscan.net/${path}/${hash}`
+function getMinterscanLinkHTML(item) {
+  const path = item.type === 'validator' ? 'validator' : 'address'
+  const link = `https://minterscan.net/${path}/${item.hash}`
   return `<a class="link minterscan" href="${link}" target="_blank" title="${link}"></a>`
 }
-function getInterchainLink(hash) {
-  const path = matchValidator(hash) ? 'nodes' : 'wallet'
-  const link = `https://minter.interchain.zone/en/${path}/${hash}`
+function getInterchainLinkHTML(item) {
+  const path = item.type === 'validator' ? 'nodes' : 'wallet'
+  const link = `https://minter.interchain.zone/en/${path}/${item.hash}`
   return `<a class="link interchain" href="${link}" target="_blank" title="${link}"></a>`
 }
-function getKarmaLink(hash) {
-  const link = `https://karma.mn/#${hash}`
-  return matchAddress(hash) ? `<a class="link karma" href="link" target="_blank" title="${link}"></a>` : ''
+function getKarmaLinkHTML(item) {
+  const link = `https://karma.mn/#${item.hash}`
+  return item.type === 'profile' ? `<a class="link karma" href="${link}" target="_blank" title="${link}"></a>` : ''
 }
 
-function matchTwitter(value) {
-  return value && (value.match(/twitter\.com\/([^/\s]+)/i) || [])[1];
-}
-function matchFacebook(value) {
-  return value && (value.match(/twitter\.com\/([^/\s]+)/i) || [])[1];
-}
-function matchVkontakte(value) {
-  return value && (value.match(/vk\.com\/([^/\s]+)/i) || [])[1];
-}
-function matchTelegram(value) {
+function getTelegramName(value) {
   return value && (value.match(/(?:(?:t(?:elegram)?\.me\/)|@)([a-z0-9_]{5,32})/i) || [])[1];
 }
-function matchAddress(value) {
-  return value && (value.match(/(Mx[a-z0-9]{40})/i) || [])[1];
+function getVkontakteName(value) {
+  return value && (value.match(/vk\.com\/([^/\s]+)/i) || [])[1];
 }
-function matchValidator(value) {
-  return value && (value.match(/(Mp[a-z0-9]{64})/i) || [])[1];
+function getFacebookName(value) {
+  return value && (value.match(/twitter\.com\/([^/\s]+)/i) || [])[1];
 }
-function matchTransaction(value) {
-  return value && (value.match(/(Mt[a-z0-9]{64})/i) || [])[1];
-}
-function matchCoin(value) {
-  return value && (value.match(/([A-Z0-9]{3,10})/) || [])[1];
+function getTwitterName(value) {
+  return value && (value.match(/twitter\.com\/([^/\s]+)/i) || [])[1];
 }
 
-function sanitize(html) {
+function sanitizeHTML(html) {
 	const temp = document.createElement('div')
 	temp.textContent = html
 	return temp.innerHTML

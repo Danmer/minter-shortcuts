@@ -1,15 +1,14 @@
 const app = typeof chrome === 'undefined' ? browser : chrome
 
-let $input = document.querySelector('.input')
-let $status = document.querySelector('.status')
-let $errors = document.querySelector('.errors')
-let $result = document.querySelector('.result')
-let $update = document.querySelector('.update')
+const $input = document.querySelector('.input')
+const $status = document.querySelector('.status')
+const $errors = document.querySelector('.errors')
+const $validators = document.querySelector('.validators')
+const $profiles = document.querySelector('.profiles')
+const $update = document.querySelector('.update')
 
 let items = []
 let $items = []
-let $avatars = []
-let $copyButtons = []
 let fetchingProfiles = false
 let fetchingValidators = false
 let input = ''
@@ -44,20 +43,29 @@ function saveToStorage(object = {}) {
 
 async function fetchItems() {
   await saveToStorage({minterProfilesUpdated: 0, minterValidatorsUpdated: 0})
+  removeEventListeners()
+  $errors.innerHTML = ''
+  $validators.innerHTML = ''
+  $profiles.innerHTML = ''
+  items = []
   updateItems()
 }
 
 function updateItems() {
-  $errors.innerHTML = ''
-  items = []
   Promise.all([
     getValidators().then(validators => {
+      $validators.innerHTML = getItemsHTML(validators)
+      $items = document.querySelectorAll('.item')
       items = validators.concat(items)
-      drawItems()
+      drawStatus()
+      throttledLazyLoad()
     }),
     getProfiles().then(profiles => {
+      $profiles.innerHTML = getItemsHTML(profiles)
+      $items = document.querySelectorAll('.item')
       items = items.concat(profiles)
-      drawItems()
+      drawStatus()
+      throttledLazyLoad()
     })
   ])
 }
@@ -65,60 +73,52 @@ function updateItems() {
 function search() {
   input = $input.value.toLowerCase().replace(/^[@#]/, '')
   saveToStorage({minterSearch: input})
-  matchItems()
-  items.forEach(($item, index) => {
-    $items[index].classList[items[index].matched ? 'add' : 'remove']('matched')
+  $items.forEach(($item, index) => {
+    if (isItemMatched(items[index])) {
+      $item.classList.add('matched')
+    } else {
+      $item.classList.remove('matched')
+    }
   })
   window.scroll(0, 0)
+  drawStatus()
   throttledLazyLoad()
 }
 
 function drawStatus() {
-  const profiles = items.filter(item => item.type === 'profile')
-  const validators = items.filter(item => item.type === 'validator')
-  const matchedProfiles = profiles.filter(profile => profile.matched)
-  const matchedValidators = validators.filter(validator => validator.matched)
-  const profilesCount = fetchingProfiles ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedProfiles.length}/${profiles.length}` : profiles.length)
-  const validatorsCount = fetchingValidators ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedValidators.length}/${validators.length}` : validators.length)
-  $status.innerHTML = `${profilesCount} profiles, ${validatorsCount} validators`
+  const profilesCount = document.querySelectorAll('.profile').length
+  const validatorsCount = document.querySelectorAll('.validator').length
+  const matchedProfilesCount = document.querySelectorAll('.profile.matched').length
+  const matchedValidatorsCount = document.querySelectorAll('.validator.matched').length
+  const profilesStatus = fetchingProfiles ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedProfilesCount}/${profilesCount}` : profilesCount)
+  const validatorsStatus = fetchingValidators ? '<img class="spinner" src="../img/loading_16.gif" alt="" /> loading' : (input ? `${matchedValidatorsCount}/${validatorsCount}` : validatorsCount)
+  $status.innerHTML = `${profilesStatus} profiles, ${validatorsStatus} validators`
 }
 
-function drawItems() {
-  matchItems()
-  removeEventListeners()
-  $result.innerHTML = items.map(getItemHTML).join('')
-  $items = document.querySelectorAll('.item')
-  $avatars = document.querySelectorAll('.avatar')
-  $copyButtons = document.querySelectorAll('.copy')
-  addEventListeners()
-  throttledLazyLoad()
-}
-
-function addEventListeners() {
-  $copyButtons.forEach($copyButton => {
-    $copyButton.addEventListener('click', copy)
-  })
-  $avatars.forEach($avatar => {
-    $avatar.addEventListener('error', repairAvatar)
-    $avatar.addEventListener('click', reloadAvatar)
-  })
-}
-
-function removeEventListeners() {
-  $copyButtons.forEach($copyButton => {
+function removeEventListeners($parent = document) {
+  $parent.querySelectorAll('.copy').forEach($copyButton => {
     $copyButton.removeEventListener('click', copy)
   })
-  $avatars.forEach($avatar => {
+  $parent.querySelectorAll('.avatar').forEach($avatar => {
     $avatar.removeEventListener('error', repairAvatar)
-    $avatar.removeEventListener('click', reloadAvatar)
+    $avatar.removeEventListener('click', loadAvatar)
   })
 }
 
 function lazyLoad() {
   items.forEach((item, index) => {
-    if (item.matched && !$avatars[index].dataset.loaded && $items[index].offsetTop < window.innerHeight + window.pageYOffset + 300 && $items[index].offsetTop > window.pageYOffset - 300) {
-      $avatars[index].src = $avatars[index].dataset.src
-      $avatars[index].dataset.loaded = true
+    const $item = $items[index]
+    if ($item.classList.contains('matched') && !$item.dataset.loaded) {
+      if ($item.offsetTop < window.innerHeight + window.pageYOffset + 300 && $item.offsetTop > window.pageYOffset - 300) {
+        $item.innerHTML = getItemContentHTML(item)
+        const $copyButton = $item.querySelector('.copy')
+        const $avatar = $item.querySelector('.avatar')
+        $copyButton.addEventListener('click', copy)
+        $avatar.addEventListener('error', repairAvatar)
+        $avatar.addEventListener('click', loadAvatar)
+        $item.dataset.loaded = true
+        setTimeout(loadAvatar.bind($avatar), 100)
+      }
     }
   })
 }
@@ -127,11 +127,16 @@ function repairAvatar() {
   this.src = '../img/error_32.png'
 }
 
-function reloadAvatar() {
-  this.src = '../img/loading_32.gif'
+function loadAvatar() {
+  let cache = ''
+  if (this.dataset.loaded) {
+    cache = `?${Date.now()}`
+    this.src = '../img/loading_32.gif'
+  }
   setTimeout(() => {
-    this.src = this.dataset.src + '?' + Date.now()
-  }, 500)
+    this.src = this.dataset.src + cache
+    this.dataset.loaded = true
+  }, 100)
 }
 
 function copy() {
@@ -253,15 +258,13 @@ function parseProfile(profile) {
   }
 }
 
-function matchItems() {
+function isItemMatched(item) {
   const words = input.split(/\s+/)
-  items.forEach(item => {
-    item.matched = true
-    words.forEach(word => {
-      item.matched = item.matched && hasWordVariations(item, word)
-    })
+  let matched = true
+  words.forEach(word => {
+    matched = matched && hasWordVariations(item, word)
   })
-  drawStatus()
+  return matched
 }
 
 function hasWordVariations(item, word) {
@@ -287,36 +290,38 @@ function hasWord(item, word) {
   return address || description || title || www
 }
 
-function getItemHTML(item) {
-  const {hash, icon, title, description, matched, www, isVerified, type} = item
+function getItemsHTML(items) {
+  return items.map(item => `<div class="item ${item.type} ${isItemMatched(item) ? 'matched' : ''}"></div>`).join('')
+}
+
+function getItemContentHTML(item) {
+  const {hash, icon, title, description, www, isVerified, type} = item
   const avatarHTML = `<img class="avatar" width="32" height="32" src="../img/loading_32.gif" data-src="${icon || '../img/empty_32.png'}" alt="" />`
   const verifiedHTML = isVerified ? '<img class="verified" src="../img/verified_32.png" alt="" title="Verified by Minterscan" />' : ''
   const shortHash = hash.slice(0, 7) + '...' + hash.slice(-5)
   const titleHTML = sanitizeHTML(title) || `Unnamed ${type}`
   const descriptionHTML = description ? `<small class="description">${sanitizeHTML(description)}</small>` : ''
   return `
-    <div class="item ${type} ${matched ? 'matched' : ''}">
-      <div class="info">
-        ${avatarHTML}
-        ${verifiedHTML}
-        <div class="header">
-          <span class="type"></span>
-          <span class="links">
-            ${getWebLinkHTML(www)}
-            ${getExplorerLinkHTML(item)}
-            ${getMinterscanLinkHTML(item)}
-            ${getInterchainLinkHTML(item)}
-            ${getKarmaLinkHTML(item)}
-          </span>
-          <div class="title">${titleHTML}</div>
-          <code class="hash" title="${hash}">
-            ${shortHash}&nbsp;
-            <span class="copy" data-hash="${hash}">copy</span>
-          </code>
-        </div>
+    <div class="info">
+      ${avatarHTML}
+      ${verifiedHTML}
+      <div class="header">
+        <span class="type"></span>
+        <span class="links">
+          ${getWebLinkHTML(www)}
+          ${getExplorerLinkHTML(item)}
+          ${getMinterscanLinkHTML(item)}
+          ${getInterchainLinkHTML(item)}
+          ${getKarmaLinkHTML(item)}
+        </span>
+        <div class="title">${titleHTML}</div>
+        <code class="hash" title="${hash}">
+          ${shortHash}&nbsp;
+          <span class="copy" data-hash="${hash}">copy</span>
+        </code>
       </div>
-      ${descriptionHTML}
     </div>
+    ${descriptionHTML}
   `
 }
 

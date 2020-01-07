@@ -187,9 +187,9 @@ async function fetchProfiles() {
   drawStatus()
   let profiles = []
   try {
-    const data = await fetch('https://minterscan.online/v1/graphql', {method: 'POST', body: '{"query":"{\nprofiles {\naddress\ntitle\ndescription\nwww\nicon\nis_verified\n}\n}\n"}'}).then(response => response.json())
+    const data = await fetch('https://minterscan.pro/profiles').then(response => response.json())
     try {
-      profiles = data.data.profiles.filter(filterProfile).sort(sortProfile).map(parseProfile)
+      profiles = data.filter(filterProfile).sort(sortProfile).map(parseProfile)
       saveToStorage({minterVersion: version, minterProfiles: profiles, minterProfilesUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
@@ -209,9 +209,9 @@ async function fetchValidators() {
   drawStatus()
   let validators = []
   try {
-    const data = await fetch('https://minterscan.online/v1/graphql', {method: 'POST', body: '{"query":"{\nvalidators{\npub_key\nmeta\nstatus\nrating\n}\n}\n"}'}).then(response => response.json())
+    const data = await fetch('https://minterscan.pro/validators').then(response => response.json())
     try {
-      validators = data.data.validators.filter(filterValidator).sort(sortValidator).map(parseValidator)
+      validators = data.filter(filterValidator).sort(sortValidator).map(parseValidator)
       saveToStorage({minterVersion: version, minterValidators: validators, minterValidatorsUpdated: Date.now()})
     } catch (error) {
       console.warn(error);
@@ -231,7 +231,7 @@ function filterValidator(item) {
 }
 
 function filterProfile(item) {
-  return true
+  return item.title
 }
 
 function sortValidator(item1, item2) {
@@ -261,7 +261,7 @@ function parseProfile(profile) {
     title: profile.title,
     description: profile.description,
     www: profile.www,
-    isVerified: profile.is_verified,
+    isVerified: profile.isVerified,
   }
 }
 
